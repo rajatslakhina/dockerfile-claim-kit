@@ -169,7 +169,7 @@ after an unrelated answer about a regex. The full output is in
 - `llvm-cov report`: **100.00% of lines (1734) and functions (422) on all 22 library files**; regions 99.65%
   (1145 of 1149). Per-file numbers are in [Screenshots/coverage.txt](Screenshots/coverage.txt).
 - `swiftlint lint --strict`: 0 violations in 27 files, with the series' `.swiftlint.yml` unchanged.
-- **Parity with Docker.** `Scripts/parity.py` builds 69 throwaway contexts (87 files), runs the classic
+- **Parity with Docker.** `Scripts/parity.py` builds 69 throwaway contexts (100 files), runs the classic
   `docker build` (Docker 27.4.0, `FROM scratch`), traces every file back by its content in `docker export`, and
   writes `ParityFixture.swift`; 8 more cases build on an image with a shell and record what `docker run` prints.
   The contexts cover directory and file sources, trailing slashes on both sides, `.` and `..` destinations,
@@ -177,12 +177,13 @@ after an unrelated answer about a regex. The full output is in
   with and without `WORKDIR`, JSON form, sources outside the context, the `.dockerignore`, `ARG` before `FROM`
   with and without redeclaring, `ENV` and `ARG` across stages and through `FROM`, `COPY --from` by name and index,
   `${NAME:-word}` and `${NAME:+word}`, escaped `$`, the older `ENV NAME value` form, `ENV A=1 B=$A`, quoted values,
-  continuation lines with a comment inside, lowercase instructions and `# escape=`. Four of them make the build
-  stop, and all four are foreseen. The runtime cases confirm that `RUN cd` does not carry, that an `ARG` before
+  continuation lines with a comment inside, lowercase instructions and `# escape=`. Seven of them make the build
+  stop, and all seven are foreseen; the 87 files of the other 62 land where the fixture says. The runtime cases
+  confirm that `RUN cd` does not carry, that an `ARG` before
   `FROM` is empty in `RUN` until redeclared, that an `ARG` is gone when the container runs unless an `ENV` copies
   it, and that exec-form `CMD` prints `$P` as written.
-- **Mutation checks**, each killed by `swift test`'s exit status: a directory copied as itself (38 failed
-  expectations), and `ARG` values inherited through `FROM` (2).
+- **Mutation checks**, each killed by `swift test`'s exit status: a directory copied as itself (40 failed
+  expectations), and `ARG` values inherited through `FROM` (1), both run on the 1.0.0 tree.
 - **Probes before tagging**: 24 correct answers stay unflagged, 10 wrong ones are caught with the right slip, 15
   sentences from other domains and 4 other-tool sentences next to a Dockerfile make no claim, a question about a
   compose file keeps a sentence that does not name the Dockerfile out, and a later regex turn in the same
@@ -209,6 +210,10 @@ after an unrelated answer about a regex. The full output is in
   or with another code span between them, are not paired. "Goes to `/app`" for a file is not judged (into it, or
   renamed to it).
 - `PATH`, `HOME` and the other variables every container has are never reported as out of scope.
+- A variable the base image sets itself is not known. `ARG NODE_VERSION=20` / `FROM node:${NODE_VERSION}` /
+  `RUN echo $NODE_VERSION` is reported as `argBeforeFrom` with the fix `ARG NODE_VERSION`, but the official `node`
+  image sets `ENV NODE_VERSION`, which wins over an `ARG` of the same name: the line prints the image's value, and
+  the suggested fix changes nothing. The same holds for `PYTHON_VERSION`, `GOLANG_VERSION` and similar names.
 
 ## Part of a series
 
