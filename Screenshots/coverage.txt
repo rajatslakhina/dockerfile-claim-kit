@@ -1,0 +1,25 @@
+Filename                                 Regions    Missed Regions     Cover   Functions  Missed Functions  Executed       Lines      Missed Lines     Cover    Branches   Missed Branches     Cover
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+AnswerBlocks.swift                            19                 0   100.00%           5                 0   100.00%          36                 0   100.00%           0                 0         -
+Dockerfile.swift                              47                 0   100.00%          16                 0   100.00%          67                 0   100.00%           0                 0         -
+DockerfileClaim.swift                         21                 0   100.00%           3                 0   100.00%          33                 0   100.00%           0                 0         -
+DockerfileClaimChecker.swift                  24                 0   100.00%          19                 0   100.00%          55                 0   100.00%           0                 0         -
+DockerfileClaimReader.swift                   62                 0   100.00%          37                 0   100.00%          96                 0   100.00%           0                 0         -
+DockerfileEvaluator+Statements.swift          46                 0   100.00%          16                 0   100.00%          81                 0   100.00%           0                 0         -
+DockerfileEvaluator.swift                     80                 1    98.75%          24                 0   100.00%         121                 0   100.00%           0                 0         -
+DockerfileFinding+Wording.swift               52                 0   100.00%          11                 0   100.00%          89                 0   100.00%           0                 0         -
+DockerfileFinding.swift                       12                 0   100.00%           6                 0   100.00%          26                 0   100.00%           0                 0         -
+DockerfileModel.swift                         73                 0   100.00%          29                 0   100.00%         113                 0   100.00%           0                 0         -
+DockerfileReport.swift                        37                 0   100.00%          15                 0   100.00%          49                 0   100.00%           0                 0         -
+GoMatch.swift                                 48                 1    97.92%          15                 0   100.00%          57                 0   100.00%           0                 0         -
+LineChecks.swift                              67                 1    98.51%          32                 0   100.00%         147                 0   100.00%           0                 0         -
+Placement.swift                               23                 0   100.00%           6                 0   100.00%          24                 0   100.00%           0                 0         -
+PlacementReader.swift                         90                 1    98.89%          40                 0   100.00%         117                 0   100.00%           0                 0         -
+Sentences.swift                               14                 0   100.00%           8                 0   100.00%          28                 0   100.00%           0                 0         -
+Stages.swift                                  88                 0   100.00%          38                 0   100.00%         136                 0   100.00%           0                 0         -
+StatementReader.swift                         95                 0   100.00%          31                 0   100.00%         114                 0   100.00%           0                 0         -
+Substitution.swift                           132                 0   100.00%          35                 0   100.00%         181                 0   100.00%           0                 0         -
+Text.swift                                    23                 0   100.00%          12                 0   100.00%          34                 0   100.00%           0                 0         -
+Walk+Copy.swift                               96                 0   100.00%          24                 0   100.00%         130                 0   100.00%           0                 0         -
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                       1149                 4    99.65%         422                 0   100.00%        1734                 0   100.00%           0                 0         -

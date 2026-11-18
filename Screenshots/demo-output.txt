@@ -1,0 +1,105 @@
+DockerfileClaimKit demo: checking what answers say about Dockerfiles
+(Docker's classic builder rules, verified against docker build; no Docker needed to run this)
+
+1. Where each file from the build context lands
+-----------------------------------------------
+   | FROM node:20-slim
+   | WORKDIR /app
+   | COPY package.json package-lock.json ./
+   | RUN npm ci
+   | COPY src /app/src
+   | COPY README.md /docs
+   | CMD ["node", "src/index.js"]
+   src/index.js -> /app/src/index.js
+   src/lib/db.js -> /app/src/lib/db.js
+   package.json -> /app/package.json
+   README.md -> /docs (only if /docs is not a directory yet) or /docs/README.md (only if /docs is already a directory)
+   test/a.test.js -> not copied
+
+2. COPY of a directory copies what is inside it
+-----------------------------------------------
+   answer: `COPY app /srv` puts `app/main.py` at `/srv/app/main.py`.
+   verdict: wrong (1 claim checked, 0 hold, 1 wrong)
+   - [wrong] It does not hold that `app/main.py` ends up at `/srv/app/main.py`: `COPY` of a directory copies what is inside it, not the directory itself; Docker puts it at `/srv/main.py`.
+   rewrite: `app/main.py` lands at `/srv/main.py`, which is what `CMD` runs.
+   verdict: verified (1 claim checked, 1 hold)
+   - [holds] It holds that `app/main.py` ends up at `/srv/main.py`.
+
+3. Dockerfile lines that do not do what they are written to do
+--------------------------------------------------------------
+   | ARG APP_VERSION=1.4.2
+   | FROM node:20-slim
+   | RUN mkdir -p /app && cd /app
+   | COPY package.json package-lock.json .
+   | RUN npm ci
+   | RUN echo "$APP_VERSION" > /version
+   | ENV PORT=3000
+   | CMD ["node", "server.js", "--port", "$PORT"]
+   verdict: wrong (4 claims checked, 0 hold, 1 to check, 3 wrong)
+   - [wrong] It does not hold that `RUN mkdir -p /app && cd /app` works as written: each `RUN` starts a new shell, so `cd` ends with it; `WORKDIR` is what lasts; write `WORKDIR /app` instead.
+   - [check] `COPY package.json package-lock.json .` stops the classic builder: several sources need a destination ending in `/`; write `./` instead; BuildKit was not checked.
+   - [wrong] It does not hold that `RUN echo "$APP_VERSION" > /version` works as written: an `ARG` declared before `FROM` is visible only to `FROM` lines until the stage declares it again; write `ARG APP_VERSION` instead.
+   - [wrong] It does not hold that `CMD ["node", "server.js", "--port", "$PORT"]` works as written: the exec (JSON) form runs no shell, so `$` names are passed on as written; write `CMD ["sh", "-c", "node server.js --port $PORT"]` instead.
+
+4. General statements about Dockerfile rules
+--------------------------------------------
+   answer: In a Dockerfile, `RUN cd /app` makes the following commands run in `/app`. `ARG` values are available at runtime. `WORKDIR /app` fails if the directory does not exist yet.
+   verdict: wrong (3 claims checked, 0 hold, 3 wrong)
+   - [wrong] It does not hold that `RUN cd` changes the directory for later instructions: each `RUN` starts a new shell, so `cd` ends with it; `WORKDIR` is what lasts; write `WORKDIR /app` instead.
+   - [wrong] It does not hold that an `ARG` value is there when the container runs: an `ARG` exists only while the image builds; copy it into an `ENV` to keep it.
+   - [wrong] It does not hold that `WORKDIR` needs the directory to exist already: `WORKDIR` creates the directory when it does not exist.
+   rewrite: In a Dockerfile, `RUN cd /app` only lasts for that `RUN`. `ARG` values exist only during the build. `WORKDIR /app` creates the directory if it is missing.
+   verdict: verified (2 claims checked, 2 hold)
+   - [holds] It holds that `RUN cd` lasts only for its own `RUN`.
+   - [holds] It holds that `WORKDIR` creates a missing directory.
+
+5. Values and files across stages
+---------------------------------
+   | FROM node:20 AS build
+   | ENV NODE_ENV=production
+   | WORKDIR /app
+   | COPY . .
+   | RUN npm run build
+   | FROM nginx:alpine
+   | COPY --from=build /app/public /usr/share/nginx/html
+   | RUN echo "$NODE_ENV" > /env
+   verdict: wrong (3 claims checked, 1 hold, 2 wrong)
+   - [wrong] It does not hold that `RUN echo "$NODE_ENV" > /env` works as written: a stage starts from its base: `ARG` values never cross into another stage, and `ENV` values only through `FROM`.
+   - [wrong] It does not hold that `ENV NODE_ENV` values carry into a later stage: a stage starts from its base: `ARG` values never cross into another stage, and `ENV` values only through `FROM`.
+   - [holds] It holds that `public/logo.png` ends up at `/usr/share/nginx/html/logo.png`.
+   built FROM the stage instead:
+   verdict: verified (1 claim checked, 1 hold)
+   - [holds] It holds that `ENV NODE_ENV` values carry into a later stage.
+
+6. A .dockerignore keeps files out of every COPY
+------------------------------------------------
+   .dockerignore: node_modules, **/*.log; COPY . . into /app
+   DockerfileClaimKit:
+     verdict: wrong (2 claims checked, 1 hold, 1 wrong)
+     - [wrong] It does not hold that `logs/build.log` ends up at `/app/logs/build.log`: the .dockerignore keeps it out of the build context, so `COPY` never sees it.
+     - [holds] It holds that `src/a.js` ends up at `/app/src/a.js`.
+   DockerignoreClaimKit reads the same sentence as a claim that the file is sent:
+     verdict: wrong (1 claim checked, 0 hold, 1 wrong)
+     - `logs/build.log` is left out by `**/*.log`, so the claim that it is sent is wrong.
+
+7. What the builder decides
+---------------------------
+   builder unknown: caution
+   classic builder: wrong
+   BuildKit: unchecked
+   `COPY package.json package-lock.json .` stops the classic builder: several sources need a destination ending in `/`; write `./` instead; BuildKit was not checked.
+
+8. A conversation, with a repeat after a correction
+---------------------------------------------------
+   turn 1: wrong (1 claim checked, 0 hold, 1 wrong)
+     note: Dockerfile check: It does not hold that `src/index.js` ends up at `/app/src/index.js`: `COPY` of a directory copies what is inside it, not the directory itself; Docker puts it at `/app/index.js`.
+   turn 2: noClaims (no claims about a Dockerfile)
+   turn 3: wrong (1 claim checked, 0 hold, 1 wrong, 1 repeated)
+     note: Dockerfile check: It does not hold that `src/index.js` ends up at `/app/src/index.js`: `COPY` of a directory copies what is inside it, not the directory itself; Docker puts it at `/app/index.js`. Some of this was stated again after a correction was asked for.
+   ledger: 3 reviews, 2 claims, 2 flagged, 1 repeated
+   feedback sent back to the model:
+     Some of what your answer says about the Dockerfile does not hold:
+     - It does not hold that `src/index.js` ends up at `/app/src/index.js`: `COPY` of a directory copies what is inside it, not the directory itself; Docker puts it at `/app/index.js`.
+     Correct every line and statement that depends on these, and keep the rest of the answer as it is.
+
+Done.
